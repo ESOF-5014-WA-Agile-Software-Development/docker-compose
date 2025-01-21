@@ -1,0 +1,74 @@
+networks:
+  agile:
+
+services:
+  mysql:
+    container_name: agile-mysql
+    image: mysql:latest
+    ports:
+      - "23306:3306"
+    cap_add:
+      - SYS_NICE
+    environment:
+      MYSQL_ROOT_PASSWORD: ${ROOT_PASSWORD}
+      MYSQL_DATABASE: agile
+      MYSQL_USER: ${DEFAULT_USER}
+      MYSQL_PASSWORD: ${DEFAULT_PASSWORD}
+    command:
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+    volumes:
+      - agile-mysql:/var/lib/mysql
+    networks:
+      - agile
+
+  phpmyadmin:
+    container_name: agile-phpmyadmin
+    image: phpmyadmin/phpmyadmin:latest
+    restart: always
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${ROOT_PASSWORD}
+    ports:
+      - "18080:80"
+    networks:
+      - agile
+
+  redis:
+    container_name: agile-redis
+    image: redis:latest
+    command: redis-server --requirepass ${ROOT_PASSWORD}
+    volumes:
+      - agile-redis:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    ports:
+      - '16379:6379'
+    networks:
+      - agile
+
+  redis-commander:
+    container_name: agile-redis-commander
+    image: rediscommander/redis-commander:latest
+    environment:
+      - REDIS_HOSTS=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=redis:6379
+      - REDIS_PASSWORD=${ROOT_PASSWORD}
+      - HTTP_USER=${DEFAULT_USER}
+      - HTTP_PASSWORD=${DEFAULT_PASSWORD}
+    ports:
+      - '18082:8081'
+    networks:
+      - agile
+    depends_on:
+      - redis
+
+# docker volume create agile-redis
+# docker volume create agile-mysql
+volumes:
+  agile-redis:
+    external: true
+  agile-mysql:
+    external: true
